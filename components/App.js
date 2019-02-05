@@ -1,5 +1,7 @@
-var GIPHY_API_URL = 'https://api.giphy.com';
-var GIPHY_PUB_KEY = 'W8M6AZTGBkORJeKHnUYjs3iG4UW7w3X4';
+const GIPHY_API_URL = 'https://api.giphy.com';
+const GIPHY_PUB_KEY = 'W8M6AZTGBkORJeKHnUYjs3iG4UW7w3X4';
+const prefix = "https://cors-anywhere.herokuapp.com/";
+const urlConst = prefix + GIPHY_API_URL + '/v1/gifs/random?api_key=' + GIPHY_PUB_KEY + '&tag=';
 
 App = React.createClass({
 
@@ -15,30 +17,36 @@ App = React.createClass({
         this.setState({
             loading: true
         });
-        this.getGif(searchingText, function(gif) {
-            this.setState({
-                loading: false,
-                gif: gif,
-                searchingText: searchingText
-            });
-        }.bind(this));
+        this.getGif(urlConst + searchingText)
+            .then((resp) => {
+                this.setState({
+                    loading: false,
+                    gif: resp,
+                    searchingText,
+                });
+            })
+            .catch(error => console.log(error));
     },
 
-    getGif: function(searchingText, callback) {
-        var url = GIPHY_API_URL + '/v1/gifs/random?api_key=' + GIPHY_PUB_KEY + '&tag=' + searchingText; 
-        var xhr = new XMLHttpRequest();
-        xhr.open('GET', url);
-        xhr.onload = function() {
-            if (xhr.status === 200) {
-                var data = JSON.parse(xhr.responseText).data;
-                var gif = {
-                    url: data.fixed_width_downsampled_url,
-                    sourceUrl: data.url
+    getGif: function(url) {
+        return new Promise(
+            function(resolve, reject) {
+                var xhr = new XMLHttpRequest();
+                xhr.onload = function() {
+                    if (this.status === 200) {
+                        var data = JSON.parse(xhr.responseText).data;
+                        resolve(data);
+                    } else {
+                        reject(new Error(this.statusText));
+                    }
                 };
-                callback(gif);
+                xhr.onerror = function() {
+                    reject(new Error(`XMLHttpRequest Error: ${this.statusText}`));
+                };                 
+                xhr.open('GET', url);
+                xhr.send();
             }
-        };
-        xhr.send();
+        );
     },
 
     render: function() {
@@ -60,7 +68,7 @@ App = React.createClass({
                 />
                 <Gif 
                     loading={this.state.loading}
-                    url={this.state.gif.url}
+                    url={this.state.gif.image_url}
                     sourceUrl={this.state.gif.sourceUrl}
                 / >
             </div>
